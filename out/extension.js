@@ -24,27 +24,77 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(require("vscode"));
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+const childProcess = __importStar(require("child_process"));
 function activate(context) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "PyVarVault" is now active!');
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('PyVarVault.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World from Python Variable Vault!');
+    console.log('python-variable-vault is now active!');
+    // Initialize the variable cache
+    const varCache = new VariableCache();
+    // Example command to add or update a variable in the cache
+    // In a real scenario, you'd extract variable names and values from Python execution contexts
+    let cacheVarCmd = vscode.commands.registerCommand('python-variable-vault.visualizeArray', () => {
+        // For demonstration, we're manually setting a variable. This would be dynamic in practice.
+        varCache.setVariable('exampleVar', 'exampleValue');
+        vscode.window.showInformationMessage('Variable cached!');
     });
-    context.subscriptions.push(disposable);
+    // Command to list cached variables
+    let showVarsCmd = vscode.commands.registerCommand('python-variable-vault.showVariables', () => {
+        const vars = varCache.listVariables();
+        vscode.window.showQuickPick(vars.map(([name, value]) => `${name}: ${value}`), {
+            placeHolder: 'Cached Variables',
+        });
+    });
+    let disposable = vscode.commands.registerCommand('python-variable-vault.runAndCaptureVariables', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage("No active Python file.");
+            return;
+        }
+        console.log('resourceLangId', editor.document.languageId);
+        const filePath = editor.document.fileName;
+        // Assuming Python is in PATH
+        const command = `python "${filePath}"`;
+        childProcess.exec(command, (error, stdout, stderr) => {
+            if (error) {
+                vscode.window.showErrorMessage(`Error running script: ${stderr}`);
+                return;
+            }
+            // Parse stdout to find variables and their values
+            // This requires the script to print variables in a specific format
+            parseAndDisplayVariables(stdout);
+        });
+    });
+    context.subscriptions.push(cacheVarCmd, showVarsCmd, disposable);
 }
 exports.activate = activate;
-// This method is called when your extension is deactivated
+function parseAndDisplayVariables(output) {
+    // Implement parsing logic here based on expected output format
+    console.log(output);
+    // Example: Display output in a message box (or process as needed)
+    vscode.window.showInformationMessage(output);
+}
+function attachToSession(session) {
+    // Here, you would attach listeners for session events, like stopping, and extract variables
+    console.log('Attaching to Python debug session');
+}
+class VariableCache {
+    cache;
+    constructor() {
+        this.cache = new Map();
+    }
+    setVariable(name, value) {
+        this.cache.set(name, value);
+    }
+    getVariable(name) {
+        return this.cache.get(name);
+    }
+    listVariables() {
+        return Array.from(this.cache.entries());
+    }
+    clear() {
+        this.cache.clear();
+    }
+}
 function deactivate() { }
 exports.deactivate = deactivate;
 //# sourceMappingURL=extension.js.map
