@@ -48,8 +48,43 @@ export function activate(context: vscode.ExtensionContext) {
         });
     });
 
-    context.subscriptions.push(cacheVarCmd, showVarsCmd, disposable);
+    const variableDataProvider = new VariableDataProvider();
+    vscode.window.createTreeView('variableList', { treeDataProvider: variableDataProvider });
+    let treeView = vscode.commands.registerCommand('python-variable-vault.showVariable', (varObj) => {
+        const panel = vscode.window.createWebviewPanel(
+            'arrayVisualization', // Identifies the type of the webview. Used internally
+            'Array Visualization', // Title of the panel displayed to the user
+            vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+            {} // Webview options. More details can be found in the documentation
+        );
+
+        // Set the HTML content of the webview panel
+        panel.webview.html = getWebviewContent(varObj);
+        vscode.window.showInformationMessage('Visualizing Array...');
+    });
+
+    context.subscriptions.push(cacheVarCmd, showVarsCmd, disposable, treeView);
 }
+
+function getWebviewContent(variable: any) {
+    // Initialize the HTML for the array items
+    let arrayItemsHTML = `<p>${variable.value !== undefined ? variable.value : 'Undefined or null value'}</p>`;
+
+    // Return the full HTML content, incorporating the arrayItemsHTML
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array Visualization</title>
+</head>
+<body>
+    <h1>Array Visualization</h1>
+    ${arrayItemsHTML} <!-- Inject the array items HTML here -->
+</body>
+</html>`;
+}
+
 
 function parseAndDisplayVariables(output: string) {
     // Implement parsing logic here based on expected output format
@@ -84,6 +119,48 @@ class VariableCache {
 
     clear() {
         this.cache.clear();
+    }
+}
+
+class VariableTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly command?: vscode.Command
+    ) {
+        super(label, collapsibleState);
+    }
+}
+
+class VariableDataProvider implements vscode.TreeDataProvider<VariableTreeItem> {
+    // Dummy data for the example
+    private variables = [
+        { name: 'var1', value: 'value1' },
+        { name: 'var2', value: 'value2' }
+    ];
+
+    getTreeItem(element: VariableTreeItem): vscode.TreeItem {
+        return element;
+    }
+
+    getChildren(element?: VariableTreeItem): Thenable<VariableTreeItem[]> {
+        if (element) {
+            // If we had child variables, we would return them here
+            return Promise.resolve([]);
+        } else {
+            // Return the top-level variables here
+            return Promise.resolve(this.variables.map(varObj => {
+                return new VariableTreeItem(
+                    varObj.name,
+                    vscode.TreeItemCollapsibleState.None,
+                    {
+                        command: 'python-variable-vault.showVariable', // Command to execute on double-click
+                        title: '',
+                        arguments: [varObj] // Pass the variable object to the command
+                    }
+                );
+            }));
+        }
     }
 }
 

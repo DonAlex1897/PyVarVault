@@ -44,7 +44,25 @@
         "mac": "cmd+f10",
         "when": "editorTextFocus && editorLangId == python"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pythonVariableVault",
+          "title": "Python Variable Vault",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": 
+    {
+      "pythonVariableVault": [
+        {
+          "id": "variableList",
+          "name": "Variables"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
